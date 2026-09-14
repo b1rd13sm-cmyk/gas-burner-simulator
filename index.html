@@ -49,8 +49,7 @@
     .screw{position:absolute;left:71px;width:98px;height:46px;border:0;background:transparent;z-index:7;touch-action:none;cursor:ew-resize;overflow:visible;padding:0;perspective:180px}
     .screw:active{cursor:grabbing}
     .cap-face{position:absolute;inset:4px 0;border-radius:11px 11px 14px 14px / 15px 15px 12px 12px;background:repeating-linear-gradient(90deg,#4d5961 0 5px,#9da9ae 5px 9px,#e6ebed 9px 12px,#68757c 12px 17px);background-position:var(--shift,0px) 0;border:2px solid #46535b;box-shadow:inset 0 8px 9px #fff8,inset 0 -10px 10px #26333b88,0 6px 11px #0005;transition:background-position .05s linear}
-    .cap-face::before{content:"";position:absolute;left:1px;right:1px;top:-7px;height:17px;border-radius:50%;background:radial-gradient(ellipse at calc(50% + var(--shine,0px)) 36%,#f7fafb 0 9%,#c3cdd1 28%,#65727a 70%,#39454d 100%);border:2px solid #46535b;box-shadow:inset 0 2px 3px #fff9}
-    .cap-face::after{content:"";position:absolute;left:calc(50% + var(--shine,0px));bottom:4px;width:7px;height:22px;border-radius:4px;background:#146fae;box-shadow:-2px 0 #d9f1ff88,2px 0 #0a3e6266;transform:translateX(-50%);transition:left .05s linear}
+    .cap-face::before{content:"";position:absolute;left:1px;right:1px;top:-7px;height:17px;border-radius:50%;background:radial-gradient(ellipse at 36% 36%,#f7fafb 0 9%,#c3cdd1 28%,#65727a 70%,#39454d 100%);border:2px solid #46535b;box-shadow:inset 0 2px 3px #fff9}
     .gas-screw{bottom:76px}.air-screw{bottom:130px}
     .screw:focus-visible,.valve:focus-visible,.match:focus-visible{outline:4px solid #46a7ff;outline-offset:4px}
     .hose{position:absolute;left:calc(52% + 92px);right:81px;bottom:91px;height:149px;border:18px solid #c95149;border-left:0;border-top:0;border-radius:0 0 120px 0;pointer-events:none}
@@ -149,8 +148,8 @@
           <div class="flame-wrap" id="flameWrap"><div class="flame"><div class="flame-outer"></div><div class="flame-inner"></div></div></div>
           <div class="barrel"></div><div class="barrel-top" id="burnerMouth"></div><div class="air-hole"></div><div class="collar"></div>
           <div class="stem"></div><div class="base"></div>
-          <button class="screw gas-screw" id="gasScrew" style="--shift:0px;--shine:0px" aria-label="ガス調節ねじ。左右にドラッグして回します"><span class="cap-face"></span></button>
-          <button class="screw air-screw" id="airScrew" style="--shift:0px;--shine:0px" aria-label="空気調節ねじ。左右にドラッグして回します"><span class="cap-face"></span></button>
+          <button class="screw gas-screw" id="gasScrew" style="--shift:0px" aria-label="ガス調節ねじ。左右にドラッグして回します"><span class="cap-face"></span></button>
+          <button class="screw air-screw" id="airScrew" style="--shift:0px" aria-label="空気調節ねじ。左右にドラッグして回します"><span class="cap-face"></span></button>
         </div>
         <div class="matchbox" id="matchbox">MATCH<small>下の茶色い部分でこする</small></div>
         <button class="match" id="match" aria-label="マッチ。ドラッグして動かす"><span class="match-fire"></span><span class="stick"></span><span class="head"></span></button>
@@ -247,10 +246,8 @@
       el.gasValue.textContent=state.gas+"%";el.airValue.textContent=state.air+"%";
       el.gasRange.value=state.gas;el.airRange.value=state.air;
       var gasAngle=state.gas*5.4,airAngle=state.air*5.4;
-      el.gasScrew.style.setProperty("--shift",(-gasAngle*.13)+"px");
-      el.airScrew.style.setProperty("--shift",(-airAngle*.13)+"px");
-      el.gasScrew.style.setProperty("--shine",(Math.sin(gasAngle*Math.PI/180)*24)+"px");
-      el.airScrew.style.setProperty("--shine",(Math.sin(airAngle*Math.PI/180)*24)+"px");
+      el.gasScrew.style.setProperty("--shift",(gasAngle*.13)+"px");
+      el.airScrew.style.setProperty("--shift",(airAngle*.13)+"px");
       document.documentElement.style.setProperty("--gas",(state.gas/100).toFixed(2));
       document.documentElement.style.setProperty("--air",(state.air/100).toFixed(2));
       var c=flameColors();

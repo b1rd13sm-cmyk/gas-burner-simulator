@@ -46,13 +46,12 @@
     .air-hole{position:absolute;left:93px;bottom:184px;width:18px;height:13px;background:#16232d;border-radius:50%;box-shadow:38px 0 #16232d;z-index:3;opacity:calc(.1 + var(--air)*.9)}
     .base{position:absolute;left:29px;bottom:35px;width:182px;height:46px;border-radius:50%;background:linear-gradient(#9ca9b1,#4b5963);border:2px solid #46525b;box-shadow:0 13px 15px #1f2b3455}
     .stem{position:absolute;left:96px;bottom:68px;width:48px;height:103px;background:linear-gradient(90deg,#59666f,#d7dfe3,#6f7c84);border:2px solid #505d65}
-    .screw{position:absolute;left:157px;width:66px;height:66px;border:0;border-radius:50%;background:transparent;z-index:7;touch-action:none;cursor:grab;overflow:visible;padding:0}
+    .screw{position:absolute;left:71px;width:98px;height:46px;border:0;background:transparent;z-index:7;touch-action:none;cursor:ew-resize;overflow:visible;padding:0;perspective:180px}
     .screw:active{cursor:grabbing}
-    .cap-face{position:absolute;inset:3px;border-radius:50%;background:repeating-conic-gradient(#536169 0deg 8deg,#c8d1d5 8deg 15deg,#758189 15deg 22deg);border:3px solid #46535b;box-shadow:inset 0 0 0 8px #929ea5,inset 0 0 0 11px #dbe2e5,0 6px 12px #0005;transform:rotate(var(--turn,0deg));transition:transform .07s linear}
-    .cap-face::before{content:"";position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 36% 30%,#f5f8f9,#aab5ba 48%,#59666e 100%);border:2px solid #4a565e}
-    .cap-face::after{content:"";position:absolute;left:50%;top:7px;width:5px;height:18px;border-radius:4px;background:#126da9;box-shadow:0 1px 2px #fff8;transform:translateX(-50%)}
-    .screw-label{position:absolute;right:70px;top:50%;transform:translateY(-50%);width:96px;padding:5px 7px;border-radius:7px;background:#172532ed;color:#fff;font-size:.69rem;font-weight:900;white-space:nowrap;pointer-events:none;box-shadow:0 3px 8px #0003}
-    .gas-screw{bottom:72px}.air-screw{bottom:164px}
+    .cap-face{position:absolute;inset:4px 0;border-radius:11px 11px 14px 14px / 15px 15px 12px 12px;background:repeating-linear-gradient(90deg,#4d5961 0 5px,#9da9ae 5px 9px,#e6ebed 9px 12px,#68757c 12px 17px);background-position:var(--shift,0px) 0;border:2px solid #46535b;box-shadow:inset 0 8px 9px #fff8,inset 0 -10px 10px #26333b88,0 6px 11px #0005;transition:background-position .05s linear}
+    .cap-face::before{content:"";position:absolute;left:1px;right:1px;top:-7px;height:17px;border-radius:50%;background:radial-gradient(ellipse at calc(50% + var(--shine,0px)) 36%,#f7fafb 0 9%,#c3cdd1 28%,#65727a 70%,#39454d 100%);border:2px solid #46535b;box-shadow:inset 0 2px 3px #fff9}
+    .cap-face::after{content:"";position:absolute;left:calc(50% + var(--shine,0px));bottom:4px;width:7px;height:22px;border-radius:4px;background:#146fae;box-shadow:-2px 0 #d9f1ff88,2px 0 #0a3e6266;transform:translateX(-50%);transition:left .05s linear}
+    .gas-screw{bottom:76px}.air-screw{bottom:130px}
     .screw:focus-visible,.valve:focus-visible,.match:focus-visible{outline:4px solid #46a7ff;outline-offset:4px}
     .hose{position:absolute;left:calc(52% + 92px);right:81px;bottom:91px;height:149px;border:18px solid #c95149;border-left:0;border-top:0;border-radius:0 0 120px 0;pointer-events:none}
     .hose::after{content:"";position:absolute;right:-18px;top:-11px;width:47px;height:22px;border-radius:11px;background:#9e3c38;box-shadow:inset 0 3px #d66a63}
@@ -150,8 +149,8 @@
           <div class="flame-wrap" id="flameWrap"><div class="flame"><div class="flame-outer"></div><div class="flame-inner"></div></div></div>
           <div class="barrel"></div><div class="barrel-top" id="burnerMouth"></div><div class="air-hole"></div><div class="collar"></div>
           <div class="stem"></div><div class="base"></div>
-          <button class="screw gas-screw" id="gasScrew" style="--turn:0deg" aria-label="ガス調節ねじ。ペットボトルのキャップのようにドラッグして回します"><span class="cap-face"></span><span class="screw-label">ガス調節ねじ ↻</span></button>
-          <button class="screw air-screw" id="airScrew" style="--turn:0deg" aria-label="空気調節ねじ。ペットボトルのキャップのようにドラッグして回します"><span class="cap-face"></span><span class="screw-label">空気調節ねじ ↻</span></button>
+          <button class="screw gas-screw" id="gasScrew" style="--shift:0px;--shine:0px" aria-label="ガス調節ねじ。左右にドラッグして回します"><span class="cap-face"></span></button>
+          <button class="screw air-screw" id="airScrew" style="--shift:0px;--shine:0px" aria-label="空気調節ねじ。左右にドラッグして回します"><span class="cap-face"></span></button>
         </div>
         <div class="matchbox" id="matchbox">MATCH<small>下の茶色い部分でこする</small></div>
         <button class="match" id="match" aria-label="マッチ。ドラッグして動かす"><span class="match-fire"></span><span class="stick"></span><span class="head"></span></button>
@@ -247,8 +246,11 @@
       el.match.classList.toggle("burning",state.match);
       el.gasValue.textContent=state.gas+"%";el.airValue.textContent=state.air+"%";
       el.gasRange.value=state.gas;el.airRange.value=state.air;
-      el.gasScrew.style.setProperty("--turn",(-state.gas*5.4)+"deg");
-      el.airScrew.style.setProperty("--turn",(-state.air*5.4)+"deg");
+      var gasAngle=state.gas*5.4,airAngle=state.air*5.4;
+      el.gasScrew.style.setProperty("--shift",(-gasAngle*.13)+"px");
+      el.airScrew.style.setProperty("--shift",(-airAngle*.13)+"px");
+      el.gasScrew.style.setProperty("--shine",(Math.sin(gasAngle*Math.PI/180)*24)+"px");
+      el.airScrew.style.setProperty("--shine",(Math.sin(airAngle*Math.PI/180)*24)+"px");
       document.documentElement.style.setProperty("--gas",(state.gas/100).toFixed(2));
       document.documentElement.style.setProperty("--air",(state.air/100).toFixed(2));
       var c=flameColors();
@@ -311,23 +313,16 @@
     el.gasRange.addEventListener("input",function(e){setGas(e.target.value)});
     el.airRange.addEventListener("input",function(e){setAir(e.target.value)});
     function makeRotary(node,getValue,setValue){
-      var turning=false,lastAngle=0,totalAngle=0,startValue=0,moved=false;
-      function pointerAngle(e){
-        var r=node.getBoundingClientRect();
-        return Math.atan2(e.clientY-(r.top+r.height/2),e.clientX-(r.left+r.width/2))*180/Math.PI;
-      }
+      var turning=false,startX=0,startValue=0,moved=false;
       node.addEventListener("pointerdown",function(e){
-        turning=true;moved=false;lastAngle=pointerAngle(e);totalAngle=0;startValue=getValue();
+        turning=true;moved=false;startX=e.clientX;startValue=getValue();
         node.setPointerCapture(e.pointerId);e.preventDefault();
       });
       node.addEventListener("pointermove",function(e){
         if(!turning)return;
-        var angle=pointerAngle(e),delta=angle-lastAngle;
-        if(delta>180)delta-=360;
-        if(delta<-180)delta+=360;
-        totalAngle+=delta;lastAngle=angle;
-        if(Math.abs(totalAngle)>3)moved=true;
-        setValue(startValue-totalAngle/5.4);
+        var delta=e.clientX-startX;
+        if(Math.abs(delta)>3)moved=true;
+        setValue(startValue+delta*.7);
       });
       node.addEventListener("pointerup",function(e){
         turning=false;try{node.releasePointerCapture(e.pointerId)}catch(_e){}

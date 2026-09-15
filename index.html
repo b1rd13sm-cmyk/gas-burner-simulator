@@ -111,10 +111,23 @@
     .toast.show{transform:translate(-50%,0)}
     .mistake{position:fixed;inset:0;background:#40100cc7;display:grid;place-items:center;z-index:70;opacity:0;pointer-events:none;transition:opacity .18s;backdrop-filter:blur(3px)}
     .mistake.show{opacity:1}
-    .mistake-box{min-width:min(430px,86vw);padding:27px 30px;border:3px solid #ffb1a8;border-radius:20px;background:#fff;color:#9d241c;text-align:center;box-shadow:0 20px 70px #0008;transform:scale(.86);transition:transform .18s}
+    .mistake-box{position:relative;z-index:1;min-width:min(430px,86vw);padding:27px 30px;border:3px solid #ffb1a8;border-radius:20px;background:#fff;color:#9d241c;text-align:center;box-shadow:0 20px 70px #0008;transform:scale(.86);transition:transform .18s}
     .mistake.show .mistake-box{transform:scale(1)}
     .mistake-title{font-size:2.6rem;line-height:1;font-weight:1000;letter-spacing:.08em}
     .mistake-reason{margin-top:12px;font-size:1rem;font-weight:850;color:#562923}
+    .explosion{position:absolute;left:50%;top:48%;width:140px;height:140px;transform:translate(-50%,-50%) scale(0);pointer-events:none;z-index:0}
+    .mistake.show .explosion{animation:blast-pop .72s ease-out both}
+    .explosion::before,.explosion::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff 0 9%,#ffe861 10% 25%,#ff8a18 26% 48%,#e8321f 49% 64%,#43120c 66% 100%);box-shadow:0 0 55px 26px #ff6a18aa}
+    .explosion::after{inset:23%;background:#fff6a7;filter:blur(5px);animation:blast-core .18s infinite alternate}
+    .spark{position:absolute;left:50%;top:50%;width:18px;height:70px;border-radius:50% 50% 10px 10px;background:linear-gradient(#fff7a8,#ff8a18 60%,transparent);transform-origin:50% 0;transform:rotate(var(--r)) translateY(-105px);opacity:0}
+    .mistake.show .spark{animation:spark-fly .65s .05s ease-out both}
+    .mistake.show .mistake-title{animation:boom-word .55s ease-out both}
+    .lab.shake{animation:screen-shake .08s 8 linear}
+    @keyframes blast-pop{0%{transform:translate(-50%,-50%) scale(.05);opacity:0}18%{opacity:1}62%{transform:translate(-50%,-50%) scale(4.2);opacity:1}100%{transform:translate(-50%,-50%) scale(5.5);opacity:0}}
+    @keyframes blast-core{to{transform:scale(1.18)}}
+    @keyframes spark-fly{0%{opacity:1;transform:rotate(var(--r)) translateY(-25px) scale(.4)}75%{opacity:1}100%{opacity:0;transform:rotate(var(--r)) translateY(-155px) scale(1)}}
+    @keyframes boom-word{0%{transform:scale(.1) rotate(-9deg)}55%{transform:scale(1.35) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
+    @keyframes screen-shake{0%,100%{transform:translate(0)}25%{transform:translate(-7px,4px)}50%{transform:translate(6px,-5px)}75%{transform:translate(4px,6px)}}
     @media(max-width:1050px){main{grid-template-columns:1fr}.lab{min-height:670px}aside{display:grid;grid-template-columns:1fr 1fr}.card:last-child{grid-column:1/-1}}
     @media(max-width:680px){header{padding:0 13px;height:58px}h1{font-size:.86rem}.topbtn{padding:7px 9px;font-size:.75rem}main{padding:9px;gap:9px}.lab{min-height:620px;border-radius:12px}.apparatus{transform:scale(.75);transform-origin:50% 100%;width:133.333%;left:-16.666%}.status-pill{top:55px;font-size:.72rem}.gas-model{top:12px;right:12px}.board-note{top:15px;left:12px;font-size:.74rem}.burner{left:48%}.hose{left:calc(48% + 92px);right:57px}.near-ring{left:calc(48% - 52px)}aside{display:flex}.card{padding:14px}.matchbox{left:12px}.match{left:164px}.tap-unit{right:10px}}
   </style>
@@ -196,7 +209,13 @@
   </main>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div class="mistake" id="mistakeBanner" role="alert" aria-live="assertive"><div class="mistake-box"><div class="mistake-title">ミス！</div><div class="mistake-reason" id="mistakeReason"></div></div></div>
+<div class="mistake" id="mistakeBanner" role="alert" aria-live="assertive">
+  <div class="explosion" aria-hidden="true">
+    <i class="spark" style="--r:0deg"></i><i class="spark" style="--r:45deg"></i><i class="spark" style="--r:90deg"></i><i class="spark" style="--r:135deg"></i>
+    <i class="spark" style="--r:180deg"></i><i class="spark" style="--r:225deg"></i><i class="spark" style="--r:270deg"></i><i class="spark" style="--r:315deg"></i>
+  </div>
+  <div class="mistake-box"><div class="mistake-title">💥 ミス！</div><div class="mistake-reason" id="mistakeReason"></div></div>
+</div>
 <script>
   (function(){
     "use strict";
@@ -210,12 +229,50 @@
     var toastTimer;
     function toast(text){el.toast.textContent=text;el.toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.toast.classList.remove("show")},2100)}
     var mistakeTimer;
+    var audioContext;
+    function playExplosionSound(){
+      try{
+        var AudioCtx=window.AudioContext||window.webkitAudioContext;
+        if(!AudioCtx)return;
+        audioContext=audioContext||new AudioCtx();
+        if(audioContext.state==="suspended")audioContext.resume();
+        var now=audioContext.currentTime;
+        var master=audioContext.createGain();
+        master.gain.setValueAtTime(.72,now);
+        master.gain.exponentialRampToValueAtTime(.001,now+1.05);
+        master.connect(audioContext.destination);
+        var length=Math.floor(audioContext.sampleRate*1.05);
+        var buffer=audioContext.createBuffer(1,length,audioContext.sampleRate);
+        var data=buffer.getChannelData(0);
+        for(var i=0;i<length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/length,2.2);
+        var noise=audioContext.createBufferSource();
+        noise.buffer=buffer;
+        var filter=audioContext.createBiquadFilter();
+        filter.type="lowpass";
+        filter.frequency.setValueAtTime(1800,now);
+        filter.frequency.exponentialRampToValueAtTime(90,now+1);
+        noise.connect(filter);filter.connect(master);noise.start(now);
+        var boom=audioContext.createOscillator();
+        var boomGain=audioContext.createGain();
+        boom.type="sine";
+        boom.frequency.setValueAtTime(145,now);
+        boom.frequency.exponentialRampToValueAtTime(38,now+.62);
+        boomGain.gain.setValueAtTime(.9,now);
+        boomGain.gain.exponentialRampToValueAtTime(.001,now+.72);
+        boom.connect(boomGain);boomGain.connect(master);boom.start(now);boom.stop(now+.75);
+      }catch(_e){}
+    }
     function mistake(reason){
       el.mistakeReason.textContent=reason;
+      el.mistakeBanner.classList.remove("show");
+      el.lab.classList.remove("shake");
+      void el.mistakeBanner.offsetWidth;
       el.mistakeBanner.classList.add("show");
+      el.lab.classList.add("shake");
+      playExplosionSound();
       reset(true);
       clearTimeout(mistakeTimer);
-      mistakeTimer=setTimeout(function(){el.mistakeBanner.classList.remove("show")},1900);
+      mistakeTimer=setTimeout(function(){el.mistakeBanner.classList.remove("show");el.lab.classList.remove("shake")},1900);
     }
     function flameColors(){
       var a=state.air;

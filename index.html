@@ -128,6 +128,16 @@
     @keyframes spark-fly{0%{opacity:1;transform:rotate(var(--r)) translateY(-25px) scale(.4)}75%{opacity:1}100%{opacity:0;transform:rotate(var(--r)) translateY(-155px) scale(1)}}
     @keyframes boom-word{0%{transform:scale(.1) rotate(-9deg)}55%{transform:scale(1.35) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
     @keyframes screen-shake{0%,100%{transform:translate(0)}25%{transform:translate(-7px,4px)}50%{transform:translate(6px,-5px)}75%{transform:translate(4px,6px)}}
+    .clear-screen{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:radial-gradient(circle,#d9fff1e8,#0c684fde);opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(4px)}
+    .clear-screen.show{opacity:1}
+    .clear-box{text-align:center;color:#fff;text-shadow:0 4px 16px #064a38;transform:scale(.25)}
+    .clear-screen.show .clear-box{animation:clear-pop .8s cubic-bezier(.2,1.4,.3,1) both}
+    .clear-title{font-size:clamp(3.6rem,12vw,8rem);line-height:1;font-weight:1000;letter-spacing:.08em}
+    .clear-sub{margin-top:16px;font-size:1.1rem;font-weight:900;letter-spacing:.05em}
+    .clear-star{position:absolute;left:50%;top:50%;font-size:2rem;opacity:0;transform:rotate(var(--r)) translateY(-80px)}
+    .clear-screen.show .clear-star{animation:star-burst 1.15s .12s ease-out both}
+    @keyframes clear-pop{0%{transform:scale(.2) rotate(-8deg);opacity:0}62%{transform:scale(1.18) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+    @keyframes star-burst{0%{opacity:0;transform:rotate(var(--r)) translateY(-40px) scale(.2)}35%{opacity:1}100%{opacity:0;transform:rotate(var(--r)) translateY(-260px) scale(1.4)}}
     @media(max-width:1050px){main{grid-template-columns:1fr}.lab{min-height:670px}aside{display:grid;grid-template-columns:1fr 1fr}.card:last-child{grid-column:1/-1}}
     @media(max-width:680px){header{padding:0 13px;height:58px}h1{font-size:.86rem}.topbtn{padding:7px 9px;font-size:.75rem}main{padding:9px;gap:9px}.lab{min-height:620px;border-radius:12px}.apparatus{transform:scale(.75);transform-origin:50% 100%;width:133.333%;left:-16.666%}.status-pill{top:55px;font-size:.72rem}.gas-model{top:12px;right:12px}.board-note{top:15px;left:12px;font-size:.74rem}.burner{left:48%}.hose{left:calc(48% + 92px);right:57px}.near-ring{left:calc(48% - 52px)}aside{display:flex}.card{padding:14px}.matchbox{left:12px}.match{left:164px}.tap-unit{right:10px}}
   </style>
@@ -216,15 +226,21 @@
   </div>
   <div class="mistake-box"><div class="mistake-title">💥 ミス！</div><div class="mistake-reason" id="mistakeReason"></div></div>
 </div>
+<div class="clear-screen" id="clearScreen" role="status" aria-live="assertive">
+  <i class="clear-star" style="--r:0deg">✦</i><i class="clear-star" style="--r:45deg">✦</i><i class="clear-star" style="--r:90deg">✦</i><i class="clear-star" style="--r:135deg">✦</i>
+  <i class="clear-star" style="--r:180deg">✦</i><i class="clear-star" style="--r:225deg">✦</i><i class="clear-star" style="--r:270deg">✦</i><i class="clear-star" style="--r:315deg">✦</i>
+  <div class="clear-box"><div class="clear-title">CLEAR!</div><div class="clear-sub">安全な手順で点火・消火できました</div></div>
+</div>
 <script>
   (function(){
     "use strict";
-    var state={main:false,cock:false,match:false,lit:false,gas:0,air:0,gasVisible:true,guide:true,matchX:0,matchY:0,completed:[false,false,false,false,false],hadLit:false,leakReported:false};
+    var state={main:false,cock:false,match:false,lit:false,gas:0,air:0,gasVisible:true,guide:true,matchX:0,matchY:0,completed:[false,false,false,false,false],hadLit:false,leakReported:false,reachedBlue:false,shutdownStep:0};
     var el={};
-    ["lab","apparatus","mainValve","cock","mainState","cockState","gasVisible","gasFlow","match","matchbox","burnerMouth","flameWrap","gasRange","airRange","gasValue","airValue","flameType","soundType","message","statusPill","stepCount","guideBtn","toast","gasScrew","airScrew","mistakeBanner","mistakeReason"].forEach(function(id){el[id]=document.getElementById(id)});
+    ["lab","apparatus","mainValve","cock","mainState","cockState","gasVisible","gasFlow","match","matchbox","burnerMouth","flameWrap","gasRange","airRange","gasValue","airValue","flameType","soundType","message","statusPill","stepCount","guideBtn","toast","gasScrew","airScrew","mistakeBanner","mistakeReason","clearScreen"].forEach(function(id){el[id]=document.getElementById(id)});
     function gasPath(){return state.main&&state.cock}
     function gasEscaping(){return gasPath()&&state.gas>3&&!state.lit}
     function gasActive(){return gasPath()&&state.gas>3}
+    var CLOSED_TOLERANCE=8;
     function msg(text,type){el.message.textContent=text;el.message.className="message"+(type?" "+type:"")}
     var toastTimer;
     function toast(text){el.toast.textContent=text;el.toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.toast.classList.remove("show")},2100)}
@@ -274,6 +290,31 @@
       clearTimeout(mistakeTimer);
       mistakeTimer=setTimeout(function(){el.mistakeBanner.classList.remove("show");el.lab.classList.remove("shake")},1900);
     }
+    function playClearSound(){
+      try{
+        var AudioCtx=window.AudioContext||window.webkitAudioContext;
+        if(!AudioCtx)return;
+        audioContext=audioContext||new AudioCtx();
+        if(audioContext.state==="suspended")audioContext.resume();
+        var now=audioContext.currentTime;
+        [523.25,659.25,783.99,1046.5].forEach(function(freq,i){
+          var osc=audioContext.createOscillator(),gain=audioContext.createGain(),start=now+i*.11;
+          osc.type="sine";osc.frequency.setValueAtTime(freq,start);
+          gain.gain.setValueAtTime(.001,start);gain.gain.exponentialRampToValueAtTime(.24,start+.025);gain.gain.exponentialRampToValueAtTime(.001,start+.48);
+          osc.connect(gain);gain.connect(audioContext.destination);osc.start(start);osc.stop(start+.5);
+        });
+      }catch(_e){}
+    }
+    var clearTimer;
+    function clearSuccess(){
+      clearTimeout(clearTimer);
+      el.clearScreen.classList.remove("show");
+      void el.clearScreen.offsetWidth;
+      el.clearScreen.classList.add("show");
+      playClearSound();
+      reset(true);
+      clearTimer=setTimeout(function(){el.clearScreen.classList.remove("show")},2600);
+    }
     function flameColors(){
       var a=state.air;
       if(a<25)return {outer:"#ff8a16",inner:"#ffe75b",glow:"#ff9a23",type:"黄色い炎",sound:"静か"};
@@ -308,6 +349,7 @@
       document.documentElement.style.setProperty("--gas",(state.gas/100).toFixed(2));
       document.documentElement.style.setProperty("--air",(state.air/100).toFixed(2));
       var c=flameColors();
+      if(state.lit&&state.air>=58)state.reachedBlue=true;
       document.documentElement.style.setProperty("--outer",c.outer);
       document.documentElement.style.setProperty("--inner",c.inner);
       document.documentElement.style.setProperty("--glow",c.glow);
@@ -318,38 +360,49 @@
       state.completed[0]=state.main;state.completed[1]=state.cock;state.completed[2]=state.match||state.completed[2];state.completed[4]=state.lit||state.completed[4];
       document.querySelectorAll(".mini").forEach(function(n,i){n.classList.toggle("done",state.completed[i]);n.classList.toggle("open",state.guide&&currentStep()===i)});
       el.stepCount.textContent=state.completed.filter(Boolean).length+" / 5";
-      if(gasEscaping()){el.statusPill.textContent="⚠ ガスが出ています（未点火）";el.statusPill.className="status-pill warn"}
+      if(state.shutdownStep===2){el.statusPill.textContent="消火完了｜コックを閉めよう";el.statusPill.className="status-pill ok"}
+      else if(state.shutdownStep===3){el.statusPill.textContent="最後に元栓を閉めよう";el.statusPill.className="status-pill ok"}
+      else if(gasEscaping()){el.statusPill.textContent="⚠ ガスが出ています（未点火）";el.statusPill.className="status-pill warn"}
       else if(state.lit){el.statusPill.textContent="点火中｜空気とガスを調節";el.statusPill.className="status-pill ok"}
       else{var labels=["元栓を開けよう","コックを開けよう","マッチに火をつけよう","マッチを炎口へ近づけよう","ガスねじを少しずつ開こう","炎を調節しよう"];el.statusPill.textContent=labels[currentStep()];el.statusPill.className="status-pill"}
       contextualHint();
     }
     function contextualHint(){
       if(!state.guide){msg("自由操作モードです。安全な順番を考えて操作しよう。");return}
+      if(state.shutdownStep===2){msg("空気ねじ、ガスねじの順に閉めて消火できました。次はコックを閉めよう。","success");return}
+      if(state.shutdownStep===3){msg("コックを閉めました。最後に元栓を閉めよう。","success");return}
       if(!state.main){msg("まずは元栓をクリックして開けよう。ガス調節ねじは、まだ閉じたままやで。");return}
       if(!state.cock){msg("次にコックを開けよう。ホースへガスが通る準備ができます。");return}
       if(!state.match){msg("マッチをドラッグし、マッチ箱の下にある茶色い部分でこすって火をつけよう。");return}
       if(!state.completed[3]&&!state.lit){msg("火のついたマッチの先を、バーナーの炎口へ近づけたままにしよう。");return}
       if(!state.lit&&state.gas===0){msg("マッチを炎口の近くに置いたまま、ガス調節ねじを少しずつ開こう。");return}
       if(gasEscaping()){msg("ガスが出ていますが、マッチが炎口から遠いため点火していません。ガスねじを閉じてやり直そう。","warn");return}
-      if(state.lit&&state.air<55){msg("点火できました。次は空気調節ねじをゆっくり開き、青い炎にしよう。","success");return}
-      if(state.lit){msg("青い炎になりました。ガスの量で炎の大きさも調節できます。実験に適した炎をつくろう。","success")}
+      if(state.lit&&!state.reachedBlue&&state.air<55){msg("点火できました。次は空気調節ねじをゆっくり開き、青い炎にしよう。","success");return}
+      if(state.lit&&state.shutdownStep===0){msg("青い炎になりました。消火は、空気調節ねじ→ガス調節ねじ→コック→元栓の順です。","success");return}
+      if(state.lit&&state.shutdownStep===1){msg("空気調節ねじを閉めました。次はガス調節ねじを閉めよう。","success")}
     }
     function toggleMain(){
+      var finishing=state.main&&!state.cock&&state.shutdownStep===3&&state.reachedBlue;
       if(state.main&&(state.lit||state.cock)){
-        return mistake(state.lit?"炎がついたまま元栓を閉めました。先にガス調節ねじを閉めよう。":"コックより先に元栓を閉めました。消火はガスねじ→コック→元栓の順です。");
+        return mistake(state.lit?"炎がついたまま元栓を閉めました。先に空気ねじ、次にガスねじを閉めよう。":"コックより先に元栓を閉めました。消火は空気ねじ→ガスねじ→コック→元栓の順です。");
       }
-      state.main=!state.main;if(!state.main){state.cock=false;state.lit=false}update()
+      state.main=!state.main;if(!state.main){state.cock=false;state.lit=false}update();
+      if(finishing)clearSuccess();
     }
     function toggleCock(){
       if(!state.main){return mistake("元栓より先にコックを操作しました。")}
-      if(state.cock&&state.lit){return mistake("炎がついたままコックを閉めました。先にガス調節ねじを閉めよう。")}
-      state.cock=!state.cock;if(!state.cock)state.lit=false;update()
+      if(state.cock&&state.lit){return mistake("炎がついたままコックを閉めました。先に空気ねじ、次にガスねじを閉めよう。")}
+      var closing=state.cock;
+      state.cock=!state.cock;
+      if(closing&&state.hadLit&&state.shutdownStep===2)state.shutdownStep=3;
+      if(!state.cock)state.lit=false;update()
     }
     el.mainValve.addEventListener("click",toggleMain);
     el.cock.addEventListener("click",toggleCock);
     el.gasVisible.addEventListener("click",function(){state.gasVisible=!state.gasVisible;update()});
     function setGas(v){
       var next=Math.max(0,Math.min(100,Math.round(v)));
+      var wasLit=state.lit,oldGas=state.gas;
       if(next>0&&!state.main){return mistake("元栓が閉じたままガス調節ねじを開けました。")}
       else if(next>0&&!state.cock){return mistake("コックが閉じたままガス調節ねじを開けました。")}
       else {
@@ -359,11 +412,23 @@
           return mistake("ガスが漏れています！ 火のついたマッチを炎口に近づけてからガスを出そう。");
         }
       }
+      if(wasLit&&oldGas>3&&next<=3&&state.reachedBlue){
+        if(state.shutdownStep===0&&state.air<=CLOSED_TOLERANCE)state.shutdownStep=1;
+        if(state.shutdownStep!==1)return mistake("ガス調節ねじを先に閉めました。空気調節ねじから閉めよう。");
+        state.shutdownStep=2;
+      }
+      if(next>3&&state.shutdownStep>0)state.shutdownStep=0;
       if(state.gas===0)state.lit=false;
       if(state.gas===0)state.leakReported=false;
       update();checkIgnition();
     }
-    function setAir(v){state.air=Math.max(0,Math.min(100,Math.round(v)));update()}
+    function setAir(v){
+      var next=Math.max(0,Math.min(100,Math.round(v))),oldAir=state.air;
+      state.air=next;
+      if(state.lit&&state.reachedBlue&&oldAir>CLOSED_TOLERANCE&&next<=CLOSED_TOLERANCE)state.shutdownStep=1;
+      if(next>CLOSED_TOLERANCE&&next<58&&state.shutdownStep===1)state.shutdownStep=0;
+      update()
+    }
     el.gasRange.addEventListener("input",function(e){setGas(e.target.value)});
     el.airRange.addEventListener("input",function(e){setAir(e.target.value)});
     function makeRotary(node,getValue,setValue){
@@ -439,7 +504,7 @@
       if(used){e.preventDefault();el.match.style.transform="translate("+state.matchX+"px,"+state.matchY+"px)";checkIgnition()}
     });
     function reset(silent){
-      state={main:false,cock:false,match:false,lit:false,gas:0,air:0,gasVisible:true,guide:state.guide,matchX:0,matchY:0,completed:[false,false,false,false,false],hadLit:false,leakReported:false};
+      state={main:false,cock:false,match:false,lit:false,gas:0,air:0,gasVisible:true,guide:state.guide,matchX:0,matchY:0,completed:[false,false,false,false,false],hadLit:false,leakReported:false,reachedBlue:false,shutdownStep:0};
       dragging=false;strikeDistance=0;el.match.style.transform="translate(0,0)";update();if(silent!==true)toast("最初の状態に戻しました");
     }
     document.getElementById("resetBtn").addEventListener("click",reset);
